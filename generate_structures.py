@@ -2,85 +2,91 @@ import random
 import sys
 
 # Increase recursion depth for deep structures
-sys.setrecursionlimit(10000)
+sys.setrecursionlimit(20000)
 
-def countS(n,cache,weight_unpaired,weight_stack):
-    if ("S",n) not in cache:
-        if n == 0:
-            val = 1
-        else:
-            val = weight_unpaired*countS(n-1,cache,weight_unpaired,weight_stack)
-            if n>1:
-                val += countS(n-2,cache,weight_unpaired,weight_stack)
-            if n>2:
-                for i in range(1,n-1):
-                    val += countT(i,cache,weight_unpaired,weight_stack)*countS(n-2-i,cache,weight_unpaired,weight_stack)
-        cache[("S",n)] = val
-    return cache[("S",n)]
+def countS(n, cache, wu, ws):
+    """
+    Counts total weight of structures of length n.
+    S -> . S(n-1)
+    S -> ( U(k) ) S(n-2-k)
+    """
+    if n == 0: return 1.0
+    if ("S", n) in cache: return cache[("S", n)]
     
-def generateS(n,cache,weight_unpaired,weight_stack):
-    if n == 0:
-        return ""
-    else:
-        r = random.random() * countS(n,cache,weight_unpaired,weight_stack)
-        r -= weight_unpaired * countS(n-1,cache,weight_unpaired,weight_stack)
-        if r<0:
-            return "." + generateS(n-1,cache,weight_unpaired,weight_stack)
-        if n>1:
-            r -= countS(n-2,cache,weight_unpaired,weight_stack)
-            if r<0:
-                return "()" + generateS(n-2,cache,weight_unpaired,weight_stack)
-        if n>2:
-            for i in range(1,n-1):
-                r -= countT(i,cache,weight_unpaired,weight_stack)*countS(n-2-i,cache,weight_unpaired,weight_stack)
-                if r<0:
-                    return "("+generateT(i,cache,weight_unpaired,weight_stack)+")"+generateS(n-2-i,cache,weight_unpaired,weight_stack)
-    return None
+    # 1. Unpaired
+    val = wu * countS(n-1, cache, wu, ws)
+    
+    # 2. Paired: (U) S
+    # U must be non-empty (k >= 1)
+    if n >= 2:
+        for k in range(1, n - 1):
+            val += ws * countU(k, cache, wu, ws) * countS(n - 2 - k, cache, wu, ws)
+            
+    cache[("S", n)] = val
+    return val
 
-def countT(n,cache,weight_unpaired,weight_stack):
-    if ("T",n) not in cache:
-        if n == 0:
-            val = 0
-        else:
-            val = weight_unpaired*countS(n-1,cache,weight_unpaired,weight_stack)
-            if n==2:
-                val += weight_stack
-            if n>2:
-                val += countT(n-2,cache,weight_unpaired,weight_stack)
-            if n>2:
-                val += weight_stack*countT(n-2,cache,weight_unpaired,weight_stack)
-            if n>3:
-                for i in range(1,n-2):
-                    val += countT(i,cache,weight_unpaired,weight_stack)*countT(n-2-i,cache,weight_unpaired,weight_stack)
-        cache[("T",n)] = val
-    return cache[("T",n)]
+def countU(n, cache, wu, ws):
+    """
+    Counts total weight of structures "inside pairs" (Grammar U).
+    U is identical to S but cannot be empty (n >= 1).
+    U -> . S(n-1)
+    U -> ( U(k) ) S(n-2-k)
+    """
+    if n == 0: return 0.0 # U cannot be empty
+    if ("U", n) in cache: return cache[("U", n)]
     
-def generateT(n,cache,weight_unpaired,weight_stack):
-    if n == 0:
-        return "#"
-    else:
-        r = random.random()*countT(n,cache,weight_unpaired,weight_stack)
-        r -= weight_unpaired*countS(n-1,cache,weight_unpaired,weight_stack)
-        if r<0:
-            return "."+generateS(n-1,cache,weight_unpaired,weight_stack)
-        if n==2:
-            r -= weight_stack
-            if r<0:
-                return "()"
-        if n>2:
-            r -= countT(n-2,cache,weight_unpaired,weight_stack)
-            if r<0:
-                return "()"+generateT(n-2,cache,weight_unpaired,weight_stack)
-        if n>2:
-            r -= weight_stack*countT(n-2,cache,weight_unpaired,weight_stack)
-            if r<0:
-                return "("+generateT(n-2,cache,weight_unpaired,weight_stack)+")"
-        if n>3:
-            for i in range(1,n-2):
-                r -= countT(i,cache,weight_unpaired,weight_stack)*countT(n-2-i,cache,weight_unpaired,weight_stack)
-                if r<0:
-                    return "("+generateT(i,cache,weight_unpaired,weight_stack)+")"+generateT(n-2-i,cache,weight_unpaired,weight_stack)
-    return None
+    # Same recurrence as S for n >= 1
+    val = wu * countS(n-1, cache, wu, ws)
+    if n >= 2:
+        for k in range(1, n - 1):
+            val += ws * countU(k, cache, wu, ws) * countS(n - 2 - k, cache, wu, ws)
+            
+    cache[("U", n)] = val
+    return val
+
+def generateS(n, cache, wu, ws):
+    if n == 0: return ""
+    
+    total = countS(n, cache, wu, ws)
+    r = random.random() * total
+    
+    # 1. Unpaired
+    term = wu * countS(n-1, cache, wu, ws)
+    if r < term:
+        return "." + generateS(n-1, cache, wu, ws)
+    r -= term
+    
+    # 2. Paired
+    for k in range(1, n - 1):
+        term = ws * countU(k, cache, wu, ws) * countS(n - 2 - k, cache, wu, ws)
+        if r < term:
+            return "(" + generateU(k, cache, wu, ws) + ")" + generateS(n - 2 - k, cache, wu, ws)
+        r -= term
+        
+    # Fallback (should be rare/impossible with consistent weights)
+    return "." + generateS(n-1, cache, wu, ws)
+
+def generateU(n, cache, wu, ws):
+    if n == 0: return ""
+    
+    total = countU(n, cache, wu, ws)
+    r = random.random() * total
+    
+    # 1. Unpaired
+    term = wu * countS(n-1, cache, wu, ws)
+    if r < term:
+        return "." + generateS(n-1, cache, wu, ws)
+    r -= term
+    
+    # 2. Paired
+    for k in range(1, n - 1):
+        term = ws * countU(k, cache, wu, ws) * countS(n - 2 - k, cache, wu, ws)
+        if r < term:
+            return "(" + generateU(k, cache, wu, ws) + ")" + generateS(n - 2 - k, cache, wu, ws)
+        r -= term
+        
+    # Fallback
+    return "." + generateS(n-1, cache, wu, ws)
 
 if __name__ == "__main__":
     # Define configurations: (Length, Weight Unpaired, Weight Stack, Name)
@@ -112,10 +118,11 @@ if __name__ == "__main__":
             if s:
                 structures.append(s)
         
-        filename = f"structures_{name}_L{L}.txt"
+        # Save to output/ folder
+        filename = f"output/structures_{name}_L{L}.txt"
         with open(filename, "w") as f:
             for s in structures:
                 f.write(s + "\n")
         print(f"Saved {len(structures)} structures to {filename}")
 
-    print("\\nBatch generation complete.")
+    print("\nBatch generation complete.")
