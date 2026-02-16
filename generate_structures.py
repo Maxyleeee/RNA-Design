@@ -170,6 +170,27 @@ def generateT(n, cache, wu, ws, h, theta):
                 
     return None # Should not happen if total > 0
 
+def decompose_helices(ss):
+    p = []
+    res,H,C = {},{},{}
+    for i,c in enumerate(ss):
+        if c=="(":
+            p.append(i)
+        elif c== ")":
+            j = p.pop()
+            a,b = j,i
+            ii,jj = a+1,b-1
+            if (ii,jj) in res:
+                hid = res[(ii,jj)]
+                res[(a,b)] = hid
+                C[hid] += 1
+            else:
+                hid = 1+len(H)
+                res[(a,b)] = hid
+                H[hid] = (a,b)
+                C[hid] = 1
+    return H,C
+
 if __name__ == "__main__":
     # Define configurations: (Length, Weight Unpaired, Weight Stack, Name, Min Helix h, Min Loop theta)
     # Defaulting h=3, theta=3 for existing configs as a reasonable starting point
@@ -221,5 +242,17 @@ if __name__ == "__main__":
                 f.write(s + "\n")
         print(f"Saved {len(structures)} structures to {filename}")
 
+        # Decompose and print helices for each structure
+        for ss in structures:
+            H,C = decompose_helices(ss)
+            print(ss)
+            for hid in H.keys():
+                i,j = H[hid]
+                nbbps = C[hid]
+                k,l = i+nbbps-1,j-(nbbps-1)
+                print("  Helix %s:"%hid,(i,j),"->",(k,l),"%s BPs"%(nbbps))
+
+
     print("\nBatch generation complete.")
+
 
