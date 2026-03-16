@@ -1,22 +1,23 @@
 import random
 import sys
+import os
 
 # Increase recursion depth for deep structures
 sys.setrecursionlimit(20000)
 
 def countS(n, cache, wu, ws, wm, h, theta):
     """
-    Counts total weight of structures of length n starting with S.
+    Counts total computational weight for structures starting with grammar S.
     Inputs:
-        n: int - Length of the sequence
-        cache: dict - Memoization dict
-        wu: float - Weight for unpaired bases
-        ws: float - Weight for base pairs
-        wm: float - Weight for motifs
-        h: int - Minimum helix length
-        theta: int - Minimum loop length
+        n: int - Target sequence length
+        cache: dict - Memoization cache
+        wu: float - Unpaired base weight
+        ws: float - Stacked base pair weight
+        wm: float - Fixed starred motif weight
+        h: int - Min helix threshold
+        theta: int - Min loop length
     Outputs:
-        float - Total structure weight
+        float - Total path weight count
     S -> . S
     S -> (*h T )*h S  (Weight ws**h)
     S -> eps
@@ -41,23 +42,23 @@ def countS(n, cache, wu, ws, wm, h, theta):
 
 def countT(n, cache, wu, ws, wm, h, theta):
     """
-    Counts total weight of internal loops / substructures of length n.
+    Counts internal loops (Grammar T) computation weight.
     Inputs:
-        n: int - Length of the internal sequence
-        cache: dict - Memoization dict
-        wu: float - Weight for unpaired bases
-        ws: float - Weight for base pairs
-        wm: float - Weight for motifs
-        h: int - Minimum helix length
-        theta: int - Minimum loop length
+        n: int - Length of internal sub sequence
+        cache: dict - Memoization cache
+        wu: float - Unpaired base weight
+        ws: float - Stacked base pair weight
+        wm: float - Fixed starred motif weight
+        h: int - Min helix length
+        theta: int - Min loop distance
     Outputs:
-        float - Total valid internal configuration weight
+        float - Derived weight for T nodes
     T -> . S
     T -> (*h T )*h . S  (Weight ws**h)
     T -> (*h T )*h (*h T )*h S (Weight ws**2h)
     T -> ( T )  (Weight ws)
     T -> .* theta (Weight wu**theta)
-    T -> Motif S (Weight wm)
+    T -> Motif S      where Motif is (( T ).(....)) (Weight wm)
     """
     if n < theta: return 0.0
     if ("T", n) in cache: return cache[("T", n)]
@@ -93,25 +94,26 @@ def countT(n, cache, wu, ws, wm, h, theta):
         val += wu**theta
 
     # 6. T -> Motif S
-    if n >= 12:
-        val += wm * countS(n - 12, cache, wu, ws, wm, h, theta)
+    if n >= 11 + theta:
+        for k in range(theta, n - 11 + 1):
+            val += wm * countT(k, cache, wu, ws, wm, h, theta) * countS(n - 11 - k, cache, wu, ws, wm, h, theta)
 
     cache[("T", n)] = val
     return val
 
 def generateS(n, cache, wu, ws, wm, h, theta):
     """
-    Generates a top-level RNA structure string of length n including motifs.
+    Stochastically generates a master RNA sequence string using grammar parameters.
     Inputs:
-        n: int - Length of structure
-        cache: dict - Precomputed weight cache
-        wu: float - Weight for unpaired bases
-        ws: float - Weight for base pairs
-        wm: float - Weight for motifs
-        h: int - Minimum helix length
-        theta: int - Minimum loop length
+        n: int - String length
+        cache: dict - Precalculated weights dictionary
+        wu: float - Unpaired weight configuration
+        ws: float - Base pair stacking configuration
+        wm: float - Starred motif fixed constraint weight
+        h: int - Helix setting limits
+        theta: int - Hairpin gap configuration
     Outputs:
-        str - Generated dot-bracket RNA representation
+        str - Master dot bracket format sequence layout
     """
     if n == 0: return ""
     total = countS(n, cache, wu, ws, wm, h, theta)
@@ -140,17 +142,17 @@ def generateS(n, cache, wu, ws, wm, h, theta):
 
 def generateT(n, cache, wu, ws, wm, h, theta):
     """
-    Generates an internal RNA structural loop/branch string of length n.
+    Stochastically plots an internal structural variation constrained within parent loops.
     Inputs:
-        n: int - Length of structure
-        cache: dict - Precomputed weight cache
-        wu: float - Weight for unpaired bases
-        ws: float - Weight for base pairs
-        wm: float - Weight for motifs
-        h: int - Minimum helix length
-        theta: int - Minimum loop length
+        n: int - Sequence snippet length
+        cache: dict - System weight registry
+        wu: float - Unpaired configuration scale
+        ws: float - Secondary pairs scale measure
+        wm: float - Fixed starred motif weight
+        h: int - Strict min helix bound
+        theta: int - Strict min loop stretch 
     Outputs:
-        str or None - Generated dot-bracket RNA sub-structure
+        str or None - Processed dot-bracket sub component
     """
     if n < theta: return None 
     total = countT(n, cache, wu, ws, wm, h, theta)
@@ -203,21 +205,25 @@ def generateT(n, cache, wu, ws, wm, h, theta):
         return "." * theta
         
     # 6. T -> Motif S
-    if n >= 12:
-        term = wm * countS(n - 12, cache, wu, ws, wm, h, theta)
-        if r < term:
-            return "((.(....)).)" + generateS(n - 12, cache, wu, ws, wm, h, theta)
-        r -= term
+    if n >= 11 + theta:
+        for k in range(theta, n - 11 + 1):
+            term = wm * countT(k, cache, wu, ws, wm, h, theta) * countS(n - 11 - k, cache, wu, ws, wm, h, theta)
+            if r < term:
+                inner_T = generateT(k, cache, wu, ws, wm, h, theta)
+                rest_S = generateS(n - 11 - k, cache, wu, ws, wm, h, theta)
+                motif_str = "((" + inner_T + ").(....))"
+                return motif_str + rest_S
+            r -= term
                 
     return None
 
 def decompose_helices(ss):
     """
-    Decomposes an RNA structure string into its constituent helices.
+    Programmatically logs coordinates representing topological RNA shapes.
     Inputs:
-        ss: str - Dot-bracket notation string
+        ss: str - Secondary sequence geometry notation
     Outputs:
-        tuple (dict, dict) - H (helix positions) and C (helix lengths/base pairs)
+        tuple (dict, dict) - Identified helix indices mapping and total length map
     """
     p = []
     res,H,C = {},{},{}
@@ -242,23 +248,12 @@ def decompose_helices(ss):
 if __name__ == "__main__":
     # Define configurations: (Length, Weight Unpaired, Weight Stack, Weight Motif, Name, Min Helix h, Min Loop theta)
     configs = [
-        # Standard
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 0.0, "name": "baseline_h3_theta3", "h": 3, "theta": 3},
-        # Lower h
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 0.0, "name": "baseline_h2_theta3", "h": 2, "theta": 3},
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 0.0, "name": "baseline_h1_theta3", "h": 1, "theta": 3},
-        # Lower theta (physically unfavorable loops)
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 0.0, "name": "baseline_h3_theta2", "h": 3, "theta": 2},
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 0.0, "name": "baseline_h3_theta1", "h": 3, "theta": 1},
-        # Extreme breaking point
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 0.0, "name": "baseline_h1_theta1", "h": 1, "theta": 1},
-        
-        # Motif tests
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 5.0, "name": "motif_h3_theta3", "h": 3, "theta": 3},
-        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.0, "w_motif": 5.0, "name": "motif_h1_theta1", "h": 1, "theta": 1},
+        {"length": 100, "w_unpaired": 1.0, "w_stack": 2.0, "w_motif": 5.0, "name": "starred_motif_bias_strong_stacks", "h": 3, "theta": 3},
+        {"length": 100, "w_unpaired": 1.0, "w_stack": 0.5, "w_motif": 5.0, "name": "starred_motif_bias_weak_stacks", "h": 3, "theta": 3},
+        {"length": 100, "w_unpaired": 1.0, "w_stack": 1.2, "w_motif": 1.0, "name": "starred_balanced_motif", "h": 3, "theta": 3},
     ]
     
-    N_STRUCTURES = 50
+    N_STRUCTURES = 20
 
     print(f"Starting batch generation of {N_STRUCTURES} structures per config...")
 
@@ -289,12 +284,12 @@ if __name__ == "__main__":
                 print(f"  Warning: Failed to generate structure {i}")
         
         # Save to output/ folder
-        filename = f"output/structures_with_motif_{name}.txt"
-        # Ensure directory exists
-        import os
+        filename = f"output/structures_with_{name}.txt"
         os.makedirs("output", exist_ok=True)
         
+        # Write config metadata string + the structures
         with open(filename, "w") as f:
+            f.write(f"# Generation settings: Length={L}, Wu(unpaired)={Wu}, Ws(stacks)={Ws}, Wm(motif)={Wm}, h(min helix)={h}, theta(min loop)={theta}\n")
             for s in structures:
                 f.write(s + "\n")
         print(f"Saved {len(structures)} structures to {filename}")

@@ -4,6 +4,17 @@
 # Python
 __pycache__/
 *.pyc
+venv/
+.env
+
+# RNA Tools & Outputs
+RNA_design_tools/
+output/
+*.ps
+*.log
+*.so
+*.exe
+*.bin
 
 # OS
 .DS_Store

@@ -1,0 +1,23 @@
+
+>tmpzrjon7ej_R1_e10_t10_pkoff_ACGUoff_Tmin10_Tmax150_p1999_SFEd-Epf_1.0_Ooff_Doff_PMon 
+time=10s
+
+Acc_ratio=0.251, Iterations=3100, Accepted=777/3100, Rejected=2323/3100
+Accepted Metropolis=463/2786, Rejected Metropolis=2323/2786
+Replica exchange attempts: 310
+Replica swaps attempts: 1
+Replica swaps accepted: 0
+Replica swaps rejected: 0
+Replica exchange acc_ratio: 0.0
+
+Design not solved!
+
+Target structure:
+GGAGGCUGCGGAACGCAGUGAAACUGACCACUGGGCAACCAGGGGGCCCC
+MFE Secondary Structure: 
+((.((((.(((....(((.....))).)).((((....))))).))))))
+Partition Function Energy: -22.676                        
+1-MCC: 0.529
+
+
+Simulation time: 00:00:10

@@ -7,6 +7,15 @@ sys.setrecursionlimit(20000)
 def countS(n, cache, wu, ws, h, theta):
     """
     Counts total weight of structures of length n starting with S.
+    Inputs:
+        n: int - Length of the sequence
+        cache: dict - Memoization dict to store previous calculations
+        wu: float - Weight for unpaired bases
+        ws: float - Weight for base pairs (stacks)
+        h: int - Minimum helix length
+        theta: int - Minimum loop length
+    Outputs:
+        float - Total weight of structures
     S -> . S(n-1)
     S -> (*h T(k) )*h S(n-2h-k)
     S -> eps
@@ -38,6 +47,15 @@ def countT(n, cache, wu, ws, h, theta):
     """
     Counts total weight of structures of length n inside a helix (Grammar T).
     Constraint: n >= theta (min pair distance).
+    Inputs:
+        n: int - Length of the sequence inside the helix
+        cache: dict - Memoization dict
+        wu: float - Weight for unpaired bases
+        ws: float - Weight for base pairs
+        h: int - Minimum helix length
+        theta: int - Minimum loop length
+    Outputs:
+        float - Total weight of internal structures
     
     T -> . S
     T -> (*h T )*h . S
@@ -94,6 +112,18 @@ def countT(n, cache, wu, ws, h, theta):
     return val
 
 def generateS(n, cache, wu, ws, h, theta):
+    """
+    Generates a random RNA structure string of length n starting with S.
+    Inputs:
+        n: int - Length of the structure to generate
+        cache: dict - Precomputed memoization dict of weights
+        wu: float - Weight for unpaired bases
+        ws: float - Weight for base pairs
+        h: int - Minimum helix length
+        theta: int - Minimum loop length
+    Outputs:
+        str or None - Generated RNA secondary structure string (dot-bracket notation)
+    """
     if n == 0: return ""
     
     total = countS(n, cache, wu, ws, h, theta)
@@ -126,6 +156,18 @@ def generateS(n, cache, wu, ws, h, theta):
     return ""
 
 def generateT(n, cache, wu, ws, h, theta):
+    """
+    Generates a random internal RNA sub-structure string of length n.
+    Inputs:
+        n: int - Length of the internal structure to generate
+        cache: dict - Precomputed memoization dict of weights
+        wu: float - Weight for unpaired bases
+        ws: float - Weight for base pairs
+        h: int - Minimum helix length
+        theta: int - Minimum loop length
+    Outputs:
+        str or None - Generated internal RNA structure string (dot-bracket notation)
+    """
     # n >= theta check done by caller usually, but logic holds.
     # Note: T is strictly length n.
     if n < theta: return None 
@@ -171,6 +213,13 @@ def generateT(n, cache, wu, ws, h, theta):
     return None # Should not happen if total > 0
 
 def decompose_helices(ss):
+    """
+    Decomposes a valid dot-bracket string into a dictionary of helices.
+    Inputs:
+        ss: str - RNA secondary structure in dot-bracket notation
+    Outputs:
+        tuple (dict, dict) - H (dict mapping helix_id to (start, end) indices) and C (dict mapping helix_id to base pair count)
+    """
     p = []
     res,H,C = {},{},{}
     for i,c in enumerate(ss):

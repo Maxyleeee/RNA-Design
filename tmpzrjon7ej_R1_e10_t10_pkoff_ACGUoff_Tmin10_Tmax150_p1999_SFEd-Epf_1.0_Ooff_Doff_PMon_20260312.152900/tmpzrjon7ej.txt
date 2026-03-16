@@ -1,0 +1,6 @@
+>name
+Benchmark
+>seq_restr
+NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+>sec_struct
+((.(((((((...)))(((...)))..((.((((....))))))))))))
